@@ -1,11 +1,35 @@
-# Dataset Overview
+# IDForge Dataset Documentation
 
-This dataset is designed for multimodal manipulation detection tasks, containing synchronized **frames**, **audio**, and **text** data.  
-It is structured into **training**, **validation**, and **test** splits, organized by manipulation type and subject IDs.
+## 1. Purpose
+
+The IDForge dataset is built for **multimodal manipulation detection** and classification tasks, where models can learn from:
+- **Visual data** (frames)
+- **Audio data** (optional)
+- **Text data** (optional)
+
+The primary goal is to classify whether content is pristine or manipulated, and determine the type of manipulation.
 
 ---
 
-## 📁 Directory Structure
+## 2. Dataset Overview
+
+- **Dataset Name:** IDForge (Identity-Driven Multimedia Forgery Detection Dataset)
+- **Subjects:** 54 English-speaking celebrities from politics and entertainment
+- **Total Shots:** 463,576
+  - 249,138 shots (Training + Validation + Test)
+    - 79,827 pristine
+    - 169,311 forged
+  - 214,438 shots (Reference Set)
+- **Splits:**
+  - Training: 61.83%
+  - Validation: 6.95%
+  - Testing: 31.22%
+- **Resolution:** Minimum 1280×720 pixels
+- **Clip Length:** Mostly 5-7 seconds
+
+---
+
+## 3. Dataset Directory Structure
 
 ```plaintext
 dataset/
@@ -27,45 +51,48 @@ dataset/
     └── (same structure as train/)
 ```
 
-- Each **manipulation type** folder contains **subject ID folders** (e.g., `id00/`, `id01/`, etc.).
-- Each **subject ID folder** contains **scene folders**.
-- Each **scene folder** contains synchronized frames, audio, and text data.
+Each split (`train/`, `val/`, `test/`) contains **the same manipulation types** organized consistently.
 
 ---
 
-## 📂 Inside Each Scene Folder
+## 4. Data Hierarchy
 
-Each scene folder (e.g., `id01_scene_0005_1_infoswap.mp4/`) includes:
+Inside each manipulation type:
 
-| File | Description |
-|:-----|:------------|
-| `frames_ndarray.npy` | Numpy array containing extracted video frames |
-| `*.mp3` | Audio file extracted from the scene |
-| `*.txt` | Text transcript or related text data |
-| *(optional)* `frames_ndarray_sr.npy` | Super-resolved frames (only in some `*_textgen` folders) |
+```plaintext
+manipulation_type/
+└── idXX/
+    └── idXX_YY/
+        └── scene_folder/
+            ├── frames_ndarray.npy
+            ├── *.mp3 (audio, optional)
+            ├── *.txt (text, optional)
+            └── frames_ndarray_sr.npy (optional, super-resolved frames)
+```
 
-👉 **frames_ndarray.npy** is always present.  
-👉 **frames_ndarray_sr.npy** appears only in **textgen manipulation types**.
+- `idXX/`: Subject identity (example: `id01`, `id02`).
+- `idXX_YY/`: A subfolder containing scenes for that identity.
+- `scene_folder/`: Actual data for one scene.
 
----
-
-## 📊 Dataset Splits and Metrics
-
-| Split   | # of Subject IDs | Description |
-|:--------|:----------------:|:------------|
-| Train   | 50                | IDs: `id01`, `id02`, ..., `id53` (excluding `id00`, `id03`, `id35`, `id40`) |
-| Validation (Val) | 4         | IDs: `id00`, `id03`, `id35`, `id40` |
-| Test    | 54                | All IDs from `id00` to `id53` |
-
-**Important properties:**
-- **Train IDs** and **Validation IDs** are disjoint (no overlap).
-- **Train + Validation IDs** together cover the full set of **Test IDs**.
+✅ Scene folders **always contain** at least `frames_ndarray.npy` (video frames).
+✅ Super-resolution frames (`frames_ndarray_sr.npy`) are optionally available.
 
 ---
 
-## 📜 Manipulation Types (Classes)
+## 5. File Descriptions
 
-Each manipulation type acts as a separate **class label**.
+| File Name | Description |
+|:----------|:------------|
+| `frames_ndarray.npy` | A numpy array of the extracted video frames (shape: T × H × W × C) |
+| `frames_ndarray_sr.npy` | Super-resolved version of frames (only in some folders) |
+| `*.mp3` | Corresponding audio file |
+| `*.txt` | Textual metadata |
+
+---
+
+## 6. Labels and Manipulation Types
+
+Label mapping is defined as:
 
 | Label ID | Manipulation Type |
 |:--------:|:------------------|
@@ -81,24 +108,80 @@ Each manipulation type acts as a separate **class label**.
 | 9        | tts_textgen |
 | 10       | tts_textmismatch |
 
----
-
-## ⚡ Special Notes and Considerations
-
-- **File Naming Differences:**  
-  Some folders (e.g., `lip_rvc_textmismatch`, `rvc_textmismatch`) have unusual file names containing extra `.mp3` segments, such as `id01_scene_0012.mp3.mp4/`.  
-  This does **not affect** the inner files' availability.
-
-- **Super-Resolved Frames:**  
-  Folders under `*_textgen` manipulations contain an additional `frames_ndarray_sr.npy`, which can optionally be used for higher-quality visual inputs.
-
-- **Scene Folder Naming:**  
-  The naming of scene folders slightly differs depending on manipulation type (`idXX_scene_XXXX.mp4/`, `idXX-YY_fake.mp4/`, etc.), but the **internal structure is consistent**.
+✅ Each sample is annotated with both a **binary label** (Real/Fake) and a **multi-label vector** indicating manipulation types.
 
 ---
 
-## 📋 Summary
+## 7. Splits and ID Organization
 
-> This dataset provides synchronized **visual (frames)**, **audio**, and **text** data per manipulated or pristine sample.  
-It is structured carefully across training, validation, and test sets with clean ID separation and consistent multimodal inputs.
+| Split | Number of IDs | Notes |
+|:-----:|:-------------:|:------|
+| Train | 50 IDs         | All IDs except `id00`, `id03`, `id35`, `id40` |
+| Validation (Val) | 4 IDs | Only `id00`, `id03`, `id35`, `id40` |
+| Test | 54 IDs | Full set: `id00`–`id53` |
+
+✅ There is **no overlap** between train and validation IDs.  
+✅ Together, **train + val IDs cover the entire test set**.
+
+---
+
+## 8. Metrics Printed by Code
+
+When running `.dataset_metrics()`, the following are printed:
+- Total number of samples
+- Number of unique manipulation types
+- Distribution of samples per manipulation type
+- Number of unique IDs
+- Distribution of samples per ID
+
+Example output:
+
+```plaintext
+--- Dataset Metrics ---
+Total samples: 123456
+Number of unique manipulation types: 11
+Manipulation types distribution:
+  pristine: 12345 samples
+  face_tts_textgen: 11234 samples
+  ...
+Number of unique IDs: 54
+IDs distribution:
+  id00: 456 samples
+  id01: 487 samples
+  ...
 ```
+
+---
+
+## 9. Special Considerations
+
+- **File Naming:** Some folders (e.g., `lip_rvc_textmismatch`, `rvc_textmismatch`) have extra `.mp3.mp4` suffixes.
+- **Super-Resolved Frames:** Available for `*_textgen` manipulation types.
+- **Short Clips:** Clips shorter than 5 seconds were merged for sentence integrity.
+- **Audio Clarity and Resolution:** Minimum 720p, clear speaking faces.
+- **Reference Set:** 214,438 extra pristine video shots are available for identity priors.
+- **Ethical Approval:** Dataset construction approved by Institutional Review Board (IRB). Complies with YouTube fair use.
+
+---
+
+## 10. Usage Example (PyTorch)
+
+```python
+from metrics import MultiModalDataset
+from torch.utils.data import DataLoader
+
+dataset = MultiModalDataset(
+    root_dir='/arf/scratch/nerdogmus',
+    split='train',
+    use_super_res=False
+)
+
+dataloader = DataLoader(dataset, batch_size=4, shuffle=True, num_workers=4)
+
+for batch in dataloader:
+    frames = batch['frames']  # shape (B, T, H, W, C)
+    labels = batch['label']   # shape (B,)
+    break
+```
+
+---
